@@ -1,6 +1,8 @@
 __pycache__/
 env01/
 .env
+*.h5
+.DS_store
 
 # Ignore compiled Python files
 *.pyc

@@ -71,10 +71,10 @@ def execute_trading_strategy(symbol, model, scaler, time_step=60):
     # Trading logic
     if predicted_price > current_price:
         # Buy only if we don't have a long position
-        place_order(symbol, quantity=0.01, side=SIDE_BUY)
+        place_order(symbol, quantity=0.05, side=SIDE_BUY)
     elif predicted_price < current_price and current_position > 0:
         # Sell only if we have a long position
-        place_order(symbol, quantity=0.01, side=SIDE_SELL)
+        place_order(symbol, quantity=0.05, side=SIDE_SELL)
     
     position_info = client.futures_position_information(symbol=symbol)
     current_position = float(position_info[0]['positionAmt'])
