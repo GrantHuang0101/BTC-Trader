@@ -1,0 +1,10 @@
+__pycache__/
+env01/
+.env
+
+# Ignore compiled Python files
+*.pyc
+*.pyo
+
+# Ignore other temporary files
+*.log
