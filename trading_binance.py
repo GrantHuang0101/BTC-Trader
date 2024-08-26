@@ -16,7 +16,7 @@ api_secret = os.getenv('BINANCE_API_SECRET')
 client = Client(api_key, api_secret, testnet=True)
 
 # Load the trained LSTM model and scaler
-model = load_model('bitcoin_lstm_model.h5')
+# model = load_model('bitcoin_lstm_model.h5')
 scaler = MinMaxScaler(feature_range=(0, 1))
 
 # Fetch live data from Binance
@@ -58,8 +58,12 @@ average_cost = None
 buy_times = 0
 
 # Execute trading strategy
-def execute_trading_strategy(symbol, model, scaler, time_step=60):
+def execute_trading_strategy(symbol, scaler, time_step=60):
     global initial_buy_price, average_cost, buy_times
+
+    # Load the latest model
+    model = load_model('bitcoin_lstm_model.h5')
+    # model.compile(optimizer='adam', loss='mean_squared_error')
 
     live_data = fetch_live_data(symbol)
     predicted_price = make_prediction(model, live_data, scaler, time_step)
@@ -101,13 +105,13 @@ def execute_trading_strategy(symbol, model, scaler, time_step=60):
     print(f"Average Cost: {average_cost}, Buy times: {buy_times}")
 
 # Loop for continuous trading
-def start_trading(symbol, model, scaler, interval='1m'):
+def start_trading(symbol, scaler, interval='1m'):
     while True:
-        execute_trading_strategy(symbol, model, scaler)
+        execute_trading_strategy(symbol, scaler)
 
         for _ in tqdm(range(60), desc="Waiting..."):
             time.sleep(1)
 
 if __name__ == "__main__":
     symbol = 'BTCUSDT'
-    start_trading(symbol, model, scaler)
+    start_trading(symbol, scaler)
