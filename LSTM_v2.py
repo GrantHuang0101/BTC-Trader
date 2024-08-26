@@ -55,9 +55,9 @@ def split_data(data, train_ratio=0.65):
 def train_model(X, Y):
     model = Sequential([
         LSTM(50, return_sequences=True, input_shape=(X.shape[1], 1)),
-        Dropout(0.1),  # Dropout layer for regularization
+        Dropout(0.2),  # Dropout layer for regularization
         LSTM(50, return_sequences=False),
-        Dropout(0.1),  # Dropout layer for regularization
+        Dropout(0.2),  # Dropout layer for regularization
         Dense(25),
         Dense(1)
     ])
@@ -76,6 +76,32 @@ def train_model(X, Y):
     
     model.save('bitcoin_lstm_model.h5')
     return model
+
+# def train_model_classification(X, Y, n_class: int):
+#     model = Sequential([
+#         LSTM(50, return_sequences=True, input_shape=(X.shape[1], 1)),
+#         Dropout(0.1),  # Dropout layer for regularization
+#         LSTM(50, return_sequences=False),
+#         Dropout(0.1),  # Dropout layer for regularization
+#         Dense(25),
+#         Dense(n_class),
+#         Sigmoid()
+#     ])
+    
+#     model.compile(optimizer='adam', loss='mean_squared_error')
+    
+#     # Early stopping
+#     early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    
+#     model.fit(X, Y, 
+#               validation_split=0.1,  # Split data for validation
+#               batch_size=32, 
+#               epochs=50, 
+#               callbacks=[early_stopping], 
+#               verbose=1)
+    
+#     model.save('bitcoin_lstm_model.h5')
+#     return model
 
 def plot_results(scaled_data, train_predict, test_predict, scaler, time_step):
     look_back = time_step
@@ -134,7 +160,7 @@ def main():
     model = train_model(X_train, Y_train)
     
     # Load the trained model
-    model = load_model('bitcoin_lstm_update2_model.h5')
+    model = load_model('bitcoin_lstm_model.h5')
 
     # Predictions on training and testing data
     train_predict = model.predict(X_train)
@@ -144,18 +170,25 @@ def main():
     train_predict = scaler.inverse_transform(train_predict)
     test_predict = scaler.inverse_transform(test_predict)
 
-    # Calculate evaluation metrics
-    train_rmse = math.sqrt(mean_squared_error(Y_train, scaler.inverse_transform(Y_train.reshape(-1, 1))))
-    test_rmse = math.sqrt(mean_squared_error(Y_test, scaler.inverse_transform(Y_test.reshape(-1, 1))))
-    
-    train_mae = mean_absolute_error(Y_train, scaler.inverse_transform(Y_train.reshape(-1, 1)))
-    test_mae = mean_absolute_error(Y_test, scaler.inverse_transform(Y_test.reshape(-1, 1)))
-    
-    train_mape = np.mean(np.abs((scaler.inverse_transform(Y_train.reshape(-1, 1)) - train_predict) / scaler.inverse_transform(Y_train.reshape(-1, 1)))) * 100
-    test_mape = np.mean(np.abs((scaler.inverse_transform(Y_test.reshape(-1, 1)) - test_predict) / scaler.inverse_transform(Y_test.reshape(-1, 1)))) * 100
-    
-    train_r2 = r2_score(scaler.inverse_transform(Y_train.reshape(-1, 1)), train_predict)
-    test_r2 = r2_score(scaler.inverse_transform(Y_test.reshape(-1, 1)), test_predict)
+    # Inverse transform the actual Y values
+    Y_train_inverse = scaler.inverse_transform(Y_train.reshape(-1, 1))
+    Y_test_inverse = scaler.inverse_transform(Y_test.reshape(-1, 1))
+
+    # Calculate RMSE on the original scale
+    train_rmse = math.sqrt(mean_squared_error(Y_train_inverse, train_predict))
+    test_rmse = math.sqrt(mean_squared_error(Y_test_inverse, test_predict))
+
+    # Calculate MAE on the original scale
+    train_mae = mean_absolute_error(Y_train_inverse, train_predict)
+    test_mae = mean_absolute_error(Y_test_inverse, test_predict)
+
+    # Calculate MAPE on the original scale
+    train_mape = np.mean(np.abs((Y_train_inverse - train_predict) / Y_train_inverse)) * 100
+    test_mape = np.mean(np.abs((Y_test_inverse - test_predict) / Y_test_inverse)) * 100
+
+    # Calculate R² on the original scale
+    train_r2 = r2_score(Y_train_inverse, train_predict)
+    test_r2 = r2_score(Y_test_inverse, test_predict)
     
     print(f"Train RMSE: {train_rmse}")
     print(f"Test RMSE: {test_rmse}")
