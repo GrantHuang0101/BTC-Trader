@@ -51,17 +51,20 @@ def place_order(symbol, quantity, order_type=ORDER_TYPE_MARKET, side=SIDE_BUY):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+# Global variables
+initial_buy_price = None
+average_cost = None
+buy_times = 0
+
 # Execute trading strategy
 def execute_trading_strategy(symbol, model, scaler, time_step=60):
+    global initial_buy_price, average_cost, buy_times
+
     live_data = fetch_live_data(symbol)
     predicted_price = make_prediction(model, live_data, scaler, time_step)
     
     current_price = live_data[-1, 0]
     print(f"Predicted Price: {predicted_price}, Current Price: {current_price}")
-    
-    # Define the thresholds
-    # buy_threshold = current_price * 1.005
-    # sell_threshold = current_price * 0.995
 
     # Check current position
     position_info = client.futures_position_information(symbol=symbol)
@@ -69,17 +72,32 @@ def execute_trading_strategy(symbol, model, scaler, time_step=60):
     balance = float(client.futures_account_balance()[4]['availableBalance'])  # Available balance in USDT
 
     # Trading logic
-    if predicted_price > current_price:
-        # Buy only if we don't have a long position
+    if current_position == 0 and predicted_price > current_price + 30:
+        initial_buy_price = current_price
+        average_cost = current_price
+        buy_times = 0
         place_order(symbol, quantity=0.05, side=SIDE_BUY)
-    elif predicted_price < current_price and current_position > 0:
-        # Sell only if we have a long position
-        place_order(symbol, quantity=0.05, side=SIDE_SELL)
+
+    elif current_position > 0 and predicted_price > current_price:
+        drop_threshold = initial_buy_price * (0.98 ** (buy_times + 1))
+        
+        if current_price <= drop_threshold and buy_times < 7:
+            buy_times += 1
+            quantity = 0.05 * (1.2 ** buy_times)
+            average_cost = (average_cost * (1.2 ** (buy_times - 1)) + current_price * quantity) / (1.2 ** buy_times)
+            place_order(symbol, quantity=quantity, side=SIDE_BUY)
+
+    elif average_cost and average_cost > 0 and current_price >= average_cost * 1.2:
+        place_order(symbol, quantity=current_position, side=SIDE_SELL)
+        initial_buy_price = None
+        average_cost = None
+        buy_times = 0
     
     position_info = client.futures_position_information(symbol=symbol)
     current_position = float(position_info[0]['positionAmt'])
     balance = float(client.futures_account_balance()[4]['availableBalance'])
     print(f"Current position: {current_position}, USDT Balance: {balance}")
+    print(f"Average Cost: {average_cost}, Buy times: {buy_times}")
 
 # Loop for continuous trading
 def start_trading(symbol, model, scaler, interval='1m'):
