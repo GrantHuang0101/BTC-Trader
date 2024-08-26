@@ -1,5 +1,6 @@
 __pycache__/
 env01/
+plots
 .env
 *.h5
 .DS_store

@@ -6,6 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 from dotenv import load_dotenv
 import os
 import time
+from tqdm import tqdm
 
 load_dotenv()  # take environment variables from .env.
 
@@ -72,7 +73,7 @@ def execute_trading_strategy(symbol, model, scaler, time_step=60):
     balance = float(client.futures_account_balance()[4]['availableBalance'])  # Available balance in USDT
 
     # Trading logic
-    if current_position == 0 and predicted_price > current_price + 30:
+    if current_position == 0 and predicted_price > current_price + 10:
         initial_buy_price = current_price
         average_cost = current_price
         buy_times = 0
@@ -103,7 +104,9 @@ def execute_trading_strategy(symbol, model, scaler, time_step=60):
 def start_trading(symbol, model, scaler, interval='1m'):
     while True:
         execute_trading_strategy(symbol, model, scaler)
-        time.sleep(60)  # Wait for the next interval
+
+        for _ in tqdm(range(60), desc="Waiting..."):
+            time.sleep(1)
 
 if __name__ == "__main__":
     symbol = 'BTCUSDT'

@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import math
 import yfinance as yf
+import time
+import os
+from dotenv import load_dotenv
+from tqdm import tqdm
+
+load_dotenv()
 
 # Fetch historical data from Yahoo Finance
 def get_historical_data_yahoo(symbol, start_date, end_date, interval='1m'):
@@ -103,7 +109,7 @@ def train_model(X, Y):
 #     model.save('bitcoin_lstm_model.h5')
 #     return model
 
-def plot_results(scaled_data, train_predict, test_predict, scaler, time_step):
+def plot_results(scaled_data, train_predict, test_predict, scaler, time_step, count):
     look_back = time_step
 
     # Initialize arrays
@@ -140,67 +146,79 @@ def plot_results(scaled_data, train_predict, test_predict, scaler, time_step):
     plt.title('LSTM Model Backtesting')
     plt.xlabel('Time')
     plt.ylabel('Price')
-    plt.show()
+    plt.savefig(f'{os.getenv('PLOTS_DOWNLOAD_PATH')}_{count}.png')
+    plt.close()
 
 def main():
     symbol = 'BTC-USD'
-    start_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
-    end_date = datetime.now().strftime('%Y-%m-%d')
-    
-    historical_data = fetch_data_in_chunks(symbol, start_date, end_date)
-    scaled_data, scaler = preprocess_data(historical_data)
-    
-    train_data, test_data = split_data(scaled_data)
-    X_train, Y_train = create_dataset(train_data)
-    X_test, Y_test = create_dataset(test_data)
-    
-    X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
-    X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
+    count = 1
 
-    model = train_model(X_train, Y_train)
-    
-    # Load the trained model
-    model = load_model('bitcoin_lstm_model.h5')
+    while True:
+        # Set the current start and end date
+        start_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        
+        historical_data = fetch_data_in_chunks(symbol, start_date, end_date)
+        scaled_data, scaler = preprocess_data(historical_data)
+        
+        train_data, test_data = split_data(scaled_data)
+        X_train, Y_train = create_dataset(train_data)
+        X_test, Y_test = create_dataset(test_data)
+        
+        X_train = X_train.reshape(X_train.shape[0], X_train.shape[1], 1)
+        X_test = X_test.reshape(X_test.shape[0], X_test.shape[1], 1)
 
-    # Predictions on training and testing data
-    train_predict = model.predict(X_train)
-    test_predict = model.predict(X_test)
+        model = train_model(X_train, Y_train)
+        
+        # Load the trained model
+        model = load_model('bitcoin_lstm_model.h5')
 
-    # Inverse transform predictions
-    train_predict = scaler.inverse_transform(train_predict)
-    test_predict = scaler.inverse_transform(test_predict)
+        # Predictions on training and testing data
+        train_predict = model.predict(X_train)
+        test_predict = model.predict(X_test)
 
-    # Inverse transform the actual Y values
-    Y_train_inverse = scaler.inverse_transform(Y_train.reshape(-1, 1))
-    Y_test_inverse = scaler.inverse_transform(Y_test.reshape(-1, 1))
+        # Inverse transform predictions and actual values
+        train_predict_inverse = scaler.inverse_transform(train_predict)
+        test_predict_inverse = scaler.inverse_transform(test_predict)
+        Y_train_inverse = scaler.inverse_transform(Y_train.reshape(-1, 1))
+        Y_test_inverse = scaler.inverse_transform(Y_test.reshape(-1, 1))
 
-    # Calculate RMSE on the original scale
-    train_rmse = math.sqrt(mean_squared_error(Y_train_inverse, train_predict))
-    test_rmse = math.sqrt(mean_squared_error(Y_test_inverse, test_predict))
+        # Calculate RMSE on the original scale
+        train_rmse = math.sqrt(mean_squared_error(Y_train_inverse, train_predict_inverse))
+        test_rmse = math.sqrt(mean_squared_error(Y_test_inverse, test_predict_inverse))
 
-    # Calculate MAE on the original scale
-    train_mae = mean_absolute_error(Y_train_inverse, train_predict)
-    test_mae = mean_absolute_error(Y_test_inverse, test_predict)
+        # Calculate MAE on the original scale
+        train_mae = mean_absolute_error(Y_train_inverse, train_predict_inverse)
+        test_mae = mean_absolute_error(Y_test_inverse, test_predict_inverse)
 
-    # Calculate MAPE on the original scale
-    train_mape = np.mean(np.abs((Y_train_inverse - train_predict) / Y_train_inverse)) * 100
-    test_mape = np.mean(np.abs((Y_test_inverse - test_predict) / Y_test_inverse)) * 100
+        # Calculate MAPE on the original scale
+        train_mape = np.mean(np.abs((Y_train_inverse - train_predict_inverse) / Y_train_inverse)) * 100
+        test_mape = np.mean(np.abs((Y_test_inverse - test_predict_inverse) / Y_test_inverse)) * 100
 
-    # Calculate R² on the original scale
-    train_r2 = r2_score(Y_train_inverse, train_predict)
-    test_r2 = r2_score(Y_test_inverse, test_predict)
-    
-    print(f"Train RMSE: {train_rmse}")
-    print(f"Test RMSE: {test_rmse}")
-    print(f"Train MAE: {train_mae}")
-    print(f"Test MAE: {test_mae}")
-    print(f"Train MAPE: {train_mape}")
-    print(f"Test MAPE: {test_mape}")
-    print(f"Train R-squared: {train_r2}")
-    print(f"Test R-squared: {test_r2}")
+        # Calculate R² on the original scale
+        train_r2 = r2_score(Y_train_inverse, train_predict_inverse)
+        test_r2 = r2_score(Y_test_inverse, test_predict_inverse)
 
-    # Plotting
-    plot_results(scaled_data, train_predict, test_predict, scaler, time_step=60)
+        # Retrain the model if the model doesn't meet the standard
+
+        
+        print(f"Train RMSE: {train_rmse}")
+        print(f"Test RMSE: {test_rmse}")
+        print(f"Train MAE: {train_mae}")
+        print(f"Test MAE: {test_mae}")
+        print(f"Train MAPE: {train_mape}")
+        print(f"Test MAPE: {test_mape}")
+        print(f"Train R-squared: {train_r2}")
+        print(f"Test R-squared: {test_r2}")
+
+        # Plotting
+        plot_results(scaled_data, train_predict_inverse, test_predict_inverse, scaler, time_step=60, count=count)
+        count += 1
+
+        # Countdown timer using tqdm
+        print("Waiting for the next retraining...")
+        for _ in tqdm(range(3600)):
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()
