@@ -70,16 +70,16 @@ def execute_trading_strategy(symbol, scaler, time_step=60):
     
     current_price = live_data[-1, 0]
     print(f"Predicted Price: {predicted_price}, Current Price: {current_price}")
-
-    # Check current position
+    
+    # Check current position for trading logic
     position_info = client.futures_position_information(symbol=symbol)
     current_position = float(position_info[0]['positionAmt'])  # Positive for long, negative for short
-    balance = float(client.futures_account_balance()[4]['availableBalance'])  # Available balance in USDT
+    average_cost = float(position_info[0]['entryPrice'])
 
     # Trading logic
     if current_position == 0 and predicted_price > current_price + 10:
         initial_buy_price = current_price
-        average_cost = current_price
+        # average_cost = current_price
         buy_times = 0
         place_order(symbol, quantity=0.05, side=SIDE_BUY)
 
@@ -89,7 +89,6 @@ def execute_trading_strategy(symbol, scaler, time_step=60):
         if current_price <= drop_threshold and buy_times < 7:
             buy_times += 1
             quantity = 0.05 * (1.2 ** buy_times)
-            average_cost = (average_cost * (1.2 ** (buy_times - 1)) + current_price * quantity) / (1.2 ** buy_times)
             place_order(symbol, quantity=quantity, side=SIDE_BUY)
 
     elif average_cost and average_cost > 0 and current_price >= average_cost * 1.2:
@@ -98,11 +97,15 @@ def execute_trading_strategy(symbol, scaler, time_step=60):
         average_cost = None
         buy_times = 0
     
+    # Update current position
     position_info = client.futures_position_information(symbol=symbol)
     current_position = float(position_info[0]['positionAmt'])
     balance = float(client.futures_account_balance()[4]['availableBalance'])
+    average_cost = float(position_info[0]['entryPrice'])
+    unrealized_profit = float(position_info[0]['unRealizedProfit'])
     print(f"Current position: {current_position}, USDT Balance: {balance}")
     print(f"Average Cost: {average_cost}, Buy times: {buy_times}")
+    print(f"Unrealized Profit: {unrealized_profit}")
 
 # Loop for continuous trading
 def start_trading(symbol, scaler, interval='1m'):
