@@ -1,0 +1,10 @@
+pandas
+numpy
+sqlalchemy
+tensorflow
+scikit-learn
+matplotlib
+yfinance
+python-dotenv
+tqdm
+binance
