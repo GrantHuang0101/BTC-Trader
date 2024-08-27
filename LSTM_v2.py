@@ -174,7 +174,7 @@ def main():
     while True:
         # Set the current start and end date
         start_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
-        end_date = datetime.now().strftime('%Y-%m-%d')
+        end_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')  # Add 1 day to fetch newest data on current date
         
         historical_data = fetch_data_in_chunks(symbol, start_date, end_date)
         scaled_data, scaler = preprocess_data(historical_data)
