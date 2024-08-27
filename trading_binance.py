@@ -75,11 +75,11 @@ def execute_trading_strategy(symbol, scaler, time_step=60):
     position_info = client.futures_position_information(symbol=symbol)
     current_position = float(position_info[0]['positionAmt'])  # Positive for long, negative for short
     average_cost = float(position_info[0]['entryPrice'])
+    initial_buy_price = average_cost  # Initial the buy price
 
     # Trading logic
     if current_position == 0 and predicted_price > current_price + 10:
         initial_buy_price = current_price
-        # average_cost = current_price
         buy_times = 0
         place_order(symbol, quantity=0.05, side=SIDE_BUY)
 
