@@ -1,4 +1,4 @@
-# BTC_Trader: A Bitcoin Trading Bot
+# BTC-Trader: A Bitcoin Trading Bot
 
 BTC_Trader is a Python-based project that includes two main components:
 
