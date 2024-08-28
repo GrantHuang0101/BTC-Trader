@@ -1,6 +1,7 @@
 import numpy as np
 from binance.client import Client
 from binance.enums import *
+import requests
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 from dotenv import load_dotenv
@@ -24,6 +25,18 @@ def fetch_live_data(symbol, interval='1m', limit=60):
     klines = client.futures_klines(symbol=symbol, interval=interval, limit=limit)
     data = [float(kline[4]) for kline in klines]  # Closing price is at index 4
     return np.array(data).reshape(-1, 1)
+
+def fetch_with_retry(symbol, retries=6, delay=10):
+    for attempt in range(retries):
+        try:
+            return fetch_live_data(symbol)
+        except requests.exceptions.ReadTimeout:
+            if attempt < retries - 1:
+                print(f"Retrying... ({attempt + 1}/{retries})")
+                time.sleep(delay)
+            else:
+                print("Failed after several retries.")
+                raise
 
 # Make prediction using the LSTM model
 def make_prediction(model, live_data, scaler, time_step=60):
@@ -63,9 +76,8 @@ def execute_trading_strategy(symbol, scaler, time_step=60):
 
     # Load the latest model
     model = load_model('bitcoin_lstm_model.h5')
-    # model.compile(optimizer='adam', loss='mean_squared_error')
 
-    live_data = fetch_live_data(symbol)
+    live_data = fetch_with_retry(symbol)
     predicted_price = make_prediction(model, live_data, scaler, time_step)
     
     current_price = live_data[-1, 0]
