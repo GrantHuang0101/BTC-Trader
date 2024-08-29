@@ -30,9 +30,11 @@ def fetch_with_retry(symbol, retries=6, delay=10):
     for attempt in range(retries):
         try:
             return fetch_live_data(symbol)
-        except requests.exceptions.ReadTimeout:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError) as e:
             if attempt < retries - 1:
                 print(f"Retrying... ({attempt + 1}/{retries})")
+                if hasattr(client, 'session'):
+                    client.session.close()
                 time.sleep(delay)
             else:
                 print("Failed after several retries.")

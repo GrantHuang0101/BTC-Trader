@@ -71,7 +71,7 @@ def train_model(X, Y):
     model.compile(optimizer='adam', loss='mean_squared_error')
     
     # Early stopping
-    early_stopping = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=7, restore_best_weights=True)
     
     model.fit(X, Y, 
               validation_split=0.1,  # Split data for validation
@@ -119,7 +119,8 @@ def evaluate_and_save_model(model, X_train, Y_train, X_test, Y_test, scaler):
     print(f"Test R-squared:  {test_r2}\n")
 
     # Save the model only if it meets the criteria
-    if test_rmse < 50 and test_mae < 40 and test_mape < 0.05:
+    if ((test_rmse < 90 and test_mae < train_mae and test_mape < train_mape and test_rmse < train_rmse and test_r2 > 0.997) or
+        (test_rmse < 70 and test_mae < 50 and test_mape < 0.07 and test_r2 > 0.997)):
         model.save('bitcoin_lstm_model.h5')
         print("Model saved successfully.\n")
         return True, train_predict_inverse, test_predict_inverse
