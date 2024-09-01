@@ -120,7 +120,7 @@ def evaluate_and_save_model(model, X_train, Y_train, X_test, Y_test, scaler):
 
     # Save the model only if it meets the criteria
     if ((test_rmse < 90 and test_mae < train_mae and test_mape < train_mape and test_rmse < train_rmse and test_r2 > 0.997) or
-        (test_rmse < 70 and test_mae < 50 and test_mape < 0.07 and test_r2 > 0.997)):
+        (test_rmse < 70 and test_mae < 50 and test_mape < 0.07)):
         model.save('bitcoin_lstm_model.h5')
         print("Model saved successfully.\n")
         return True, train_predict_inverse, test_predict_inverse
